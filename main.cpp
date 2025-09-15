@@ -210,7 +210,7 @@ void send_string(HANDLE hComm, const std::string& data) {
 void receive_and_print_string(HANDLE hComm) {
     DWORD bytesRead;
     char buffer[256] = {0};
-
+    std::string result;
     COMSTAT com_stat;
     DWORD dw_error;
     if (!ClearCommError(hComm, &dw_error, &com_stat)) {
@@ -226,15 +226,19 @@ void receive_and_print_string(HANDLE hComm) {
         return;
     }
 
-    if (ReadFile(hComm, buffer, com_stat.cbInQue, &bytesRead, NULL)) {
-        buffer[bytesRead] = '\0';
-//        std::cout << "Получено: " << buffer << "(Байт: " << bytesRead << ")" << std::flush << std::endl;
-          std::cout << buffer << std::flush << std::endl;
-
-    } else {
-        std::cerr << "Ошибка чтения сообщения." << std::endl;
-        print_last_error();
+    while (true) {
+        if (ReadFile(hComm, buffer, sizeof(buffer)-1, &bytesRead, NULL)) {
+            if (bytesRead > 0) {
+                buffer[bytesRead] = '\0';
+                result += buffer;
+                if (result.find("\r\n") != std::string::npos) break;
+            } else {
+                std::cerr << "Ошибка чтения сообщения." << std::endl;
+                print_last_error();            }
+        }
     }
+    std::cout << result << std::endl;
+
 }
 
 DWORD select_baud_rate() {
